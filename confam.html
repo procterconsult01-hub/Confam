@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Confam — stop fake transfer alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F5; --surface:#FFFFFF; --sunk:#F5F7FA; --ink:#16213E; --muted:#5B6479; --line:#D5DAE3;
+  --ok:#0E7C55; --ok-soft:#E3F4EC; --bad:#C21F3A; --bad-soft:#FBE7EA; --warn:#9A6200; --warn-soft:#FCF1DC;
+  --accent:#2B3A8C; --accent-ink:#FFFFFF;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10131C; --surface:#181C28; --sunk:#1F2432; --ink:#E8EBF2; --muted:#9AA3B5; --line:#2A3142;
+    --ok:#3CC88F; --ok-soft:#12291F; --bad:#FF5C73; --bad-soft:#2E141A; --warn:#F0B64A; --warn-soft:#2B2210;
+    --accent:#8C9BFF; --accent-ink:#10131C;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10131C; --surface:#181C28; --sunk:#1F2432; --ink:#E8EBF2; --muted:#9AA3B5; --line:#2A3142;
+  --ok:#3CC88F; --ok-soft:#12291F; --bad:#FF5C73; --bad-soft:#2E141A; --warn:#F0B64A; --warn-soft:#2B2210;
+  --accent:#8C9BFF; --accent-ink:#10131C;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 64px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:8px 0 20px}
+.brand{font:800 clamp(2.4rem,9vw,3.4rem)/.9 var(--display);letter-spacing:-.03em;margin:0}
+.brand small{display:block;font:500 1rem/1.4 var(--body);letter-spacing:0;color:var(--muted);margin-top:10px;max-width:34ch}
+.theme-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:6px 12px;font:500 .85rem var(--body);cursor:pointer}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:4px;background:var(--bg);padding:8px 0;margin-bottom:12px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav.tabs button{flex:0 0 auto;background:none;border:0;color:var(--muted);font:600 .95rem var(--body);padding:8px 14px;border-radius:8px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.panel[hidden]{display:none}
+section.step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 18px;margin-bottom:14px}
+.step h2{font:700 1.3rem/1.2 var(--display);margin:0 0 4px;display:flex;gap:10px;align-items:baseline}
+.step h2 .n{font:800 1rem var(--display);color:var(--accent);min-width:1.2em}
+.step .lede{color:var(--muted);margin:0 0 16px;font-size:.95rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.grid{grid-template-columns:1fr}}
+label.f{display:block;font-weight:600;font-size:.9rem}
+label.f span.hint{display:block;font-weight:400;color:var(--muted);font-size:.8rem}
+input[type=text],select,textarea{width:100%;margin-top:6px;font:500 1rem var(--body);color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+textarea{min-height:110px;resize:vertical;font-size:.95rem}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.money{font-variant-numeric:tabular-nums}
+.src{display:grid;gap:8px;margin-top:6px}
+.src label{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--sunk);font-size:.95rem}
+.src label:has(input:checked){border-color:var(--accent);background:var(--surface);box-shadow:inset 3px 0 0 var(--accent)}
+.src input{margin-top:4px;accent-color:var(--accent)}
+.src em{font-style:normal;color:var(--muted);display:block;font-size:.82rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;padding:12px 18px;font:700 1rem var(--body);cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ok{background:var(--ok);color:#fff}
+.btn.bad{background:var(--bad);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.meter{margin-top:16px;border-radius:12px;padding:14px 16px;border:1px solid var(--line)}
+.meter.low{background:var(--ok-soft);border-color:transparent}
+.meter.mid{background:var(--warn-soft);border-color:transparent}
+.meter.high{background:var(--bad-soft);border-color:transparent}
+.meter .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.meter .head b{font:800 1.25rem var(--display)}
+.meter.low .head b{color:var(--ok)} .meter.mid .head b{color:var(--warn)} .meter.high .head b{color:var(--bad)}
+.bar{height:8px;border-radius:99px;background:color-mix(in srgb,var(--ink) 12%,transparent);margin:10px 0 12px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:currentColor;transition:width .4s ease}
+.meter.low .bar i{color:var(--ok)} .meter.mid .bar i{color:var(--warn)} .meter.high .bar i{color:var(--bad)}
+ul.flags{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.flags li{padding-left:14px;border-left:3px solid var(--line);font-size:.93rem}
+ul.flags li.high{border-color:var(--bad)} ul.flags li.mid{border-color:var(--warn)} ul.flags li.good{border-color:var(--ok)}
+ul.flags b{display:block}
+ul.flags span{color:var(--muted)}
+.reminder{margin-top:12px;font-size:.88rem;color:var(--muted)}
+.checks{display:grid;gap:8px}
+.checks label{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:10px;background:var(--sunk);cursor:pointer;font-size:.97rem}
+.checks input{width:22px;height:22px;flex:0 0 22px;accent-color:var(--ok);margin:1px 0 0}
+.checks em{display:block;font-style:normal;color:var(--muted);font-size:.83rem}
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;margin-top:18px;padding:18px;border-radius:12px;background:var(--sunk)}
+@media (max-width:520px){.verdict{grid-template-columns:1fr;justify-items:start}}
+.stamp{font:800 1.35rem/1 var(--display);letter-spacing:.06em;text-transform:uppercase;padding:12px 16px;border:4px double currentColor;border-radius:8px;transform:rotate(-5deg);white-space:nowrap}
+.stamp.ok{color:var(--ok)} .stamp.bad{color:var(--bad)} .stamp.wait{color:var(--warn)}
+.stamp.pop{animation:thump .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes thump{from{transform:rotate(-12deg) scale(1.5);opacity:0}to{transform:rotate(-5deg) scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.stamp.pop{animation:none}.bar i{transition:none}}
+.verdict p{margin:0}
+.verdict .sub{color:var(--muted);font-size:.9rem;margin-top:4px}
+.shot{margin-top:12px;display:grid;gap:10px}
+.shot img{max-height:260px;width:auto;border-radius:10px;border:1px solid var(--line)}
+.ai-out{background:var(--sunk);border-radius:10px;padding:12px 14px;font-size:.93rem;white-space:pre-wrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:520px){.stats{grid-template-columns:1fr}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat b{display:block;font:800 1.45rem var(--display)}
+.stat span{color:var(--muted);font-size:.85rem}
+.stat.ok b{color:var(--ok)} .stat.bad b{color:var(--bad)} .stat.wait b{color:var(--warn)}
+.log{list-style:none;padding:0;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.log li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:14px 16px;border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.log .what{font-weight:700}
+.log .meta{color:var(--muted);font-size:.83rem;grid-column:1/-1}
+.log select{width:auto;margin:0;padding:6px 8px;font-size:.85rem}
+.chip{font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:99px;justify-self:start}
+.chip.released{background:var(--ok-soft);color:var(--ok)} .chip.fake{background:var(--bad-soft);color:var(--bad)} .chip.held{background:var(--warn-soft);color:var(--warn)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.tricks{display:grid;gap:12px}
+.trick{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.trick h3{font:700 1.1rem/1.25 var(--display);margin:0 0 6px}
+.trick p{margin:0 0 6px;font-size:.95rem}
+.trick .do{color:var(--ok);font-weight:600}
+.poster{background:var(--ink);color:var(--bg);border-radius:14px;padding:22px 20px;margin-top:16px}
+.poster h3{font:800 1.6rem/1.1 var(--display);margin:0 0 12px}
+.poster ol{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.say{background:var(--sunk);border-radius:10px;padding:10px 12px;margin:6px 0;font-size:.95rem}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.92rem;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+.toast.show{opacity:1}
+.small{font-size:.85rem;color:var(--muted)}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 class="brand">Confam<small>Alert no be money. Check your own app before any goods leave the shop.</small></h1>
+    <button class="theme-btn" id="themeBtn" type="button">Dark mode</button>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="check">Check a payment</button>
+    <button role="tab" aria-selected="false" data-tab="log">Sales log</button>
+    <button role="tab" aria-selected="false" data-tab="tricks">Scam tricks</button>
+  </nav>
+
+  <!-- CHECK -->
+  <div class="panel" id="panel-check">
+    <section class="step">
+      <h2><span class="n">1</span>The sale</h2>
+      <p class="lede">Write down what the buyer owes before you look at any alert.</p>
+      <div class="grid">
+        <label class="f">Item
+          <input type="text" id="item" placeholder="e.g. Samsung A15, 2 bags of rice">
+        </label>
+        <label class="f">Price (₦)
+          <input type="text" id="expected" class="money" inputmode="decimal" placeholder="e.g. 185,000">
+        </label>
+        <label class="f">Buyer name or phone <span class="hint">Optional, helps you match the sender name</span>
+          <input type="text" id="customer" placeholder="e.g. Chidi Okafor">
+        </label>
+        <label class="f">Your OPay balance before the sale (₦) <span class="hint">Open your app and copy it now. This is your strongest check.</span>
+          <input type="text" id="balBefore" class="money" inputmode="decimal" placeholder="e.g. 42,300.50">
+        </label>
+      </div>
+    </section>
+
+    <section class="step">
+      <h2><span class="n">2</span>The alert</h2>
+      <p class="lede">How did you hear about the payment?</p>
+      <div class="src" id="source">
+        <label><input type="radio" name="src" value="app_self"><span>I opened the OPay app on my own phone and saw it<em>Best source. Still finish step 3.</em></span></label>
+        <label><input type="radio" name="src" value="sms"><span>SMS on my phone<em>SMS sender names can be faked.</em></span></label>
+        <label><input type="radio" name="src" value="screenshot"><span>Buyer sent a screenshot or receipt (WhatsApp, Instagram, etc.)<em>Easy to edit or generate.</em></span></label>
+        <label><input type="radio" name="src" value="buyer_phone"><span>Buyer showed me their own phone<em>Proves nothing about your account.</em></span></label>
+        <label><input type="radio" name="src" value="email"><span>Email<em>Emails can be spoofed.</em></span></label>
+      </div>
+      <label class="f" style="margin-top:16px">Paste the alert text <span class="hint">Copy the SMS or type what the receipt says. Optional, but it lets Confam check the numbers.</span>
+        <textarea id="alertText" placeholder="e.g. Credit Alert! Amt: NGN185,000.00 from CHIDI OKAFOR. Bal: NGN227,300.50"></textarea>
+      </label>
+      <div id="shotWrap" hidden>
+        <label class="f" style="margin-top:14px">Screenshot of the alert or receipt <span class="hint">Claude will look for signs of editing. Uses your Claude account.</span>
+          <input type="file" id="shotFile" accept="image/*" style="margin-top:8px">
+        </label>
+        <div class="shot" id="shotPreview"></div>
+      </div>
+      <div class="row">
+        <button class="btn" id="scanBtn" type="button">Scan alert</button>
+        <button class="btn ghost" id="aiBtn" type="button" hidden>Inspect screenshot with Claude</button>
+      </div>
+      <div id="scanOut" aria-live="polite"></div>
+      <div id="aiOut" aria-live="polite"></div>
+    </section>
+
+    <section class="step">
+      <h2><span class="n">3</span>Confirm in your OPay app</h2>
+      <p class="lede">This is the only step that proves the money is yours. Do it with the buyer waiting.</p>
+      <div class="checks" id="checks">
+        <label><input type="checkbox" data-c="opened"><span>I opened the OPay app myself<em>Not from a link, not on the buyer's phone.</em></span></label>
+        <label><input type="checkbox" data-c="history"><span>I found this exact credit in Transaction History<em>Same amount, same time. Not just a notification banner.</em></span></label>
+        <label><input type="checkbox" data-c="status"><span>The status says Successful<em>Pending or Processing means no money yet.</em></span></label>
+        <label><input type="checkbox" data-c="name"><span>The sender name matches the buyer<em>If someone else paid, ask why before releasing.</em></span></label>
+      </div>
+      <label class="f" style="margin-top:14px">Your OPay balance now (₦) <span class="hint">Compare with the balance you wrote in step 1.</span>
+        <input type="text" id="balNow" class="money" inputmode="decimal" placeholder="e.g. 227,300.50">
+      </label>
+      <div class="verdict" id="verdict"></div>
+      <div class="row">
+        <button class="btn ok" id="releaseBtn" type="button" disabled>Release goods and log sale</button>
+        <button class="btn bad" id="fakeBtn" type="button">Log as fake alert</button>
+        <button class="btn ghost" id="holdBtn" type="button">Log as still waiting</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- LOG -->
+  <div class="panel" id="panel-log" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="row" style="margin:0 0 12px">
+      <button class="btn ghost" id="exportBtn" type="button">Export CSV</button>
+      <button class="btn ghost" id="clearBtn" type="button">Clear log</button>
+    </div>
+    <ul class="log" id="logList"></ul>
+    <p class="small" style="margin-top:12px">The log is saved on this device only. Export it regularly if you want a backup.</p>
+  </div>
+
+  <!-- TRICKS -->
+  <div class="panel" id="panel-tricks" hidden>
+    <div class="tricks">
+      <article class="trick">
+        <h3>Fake alert apps</h3>
+        <p>Scammers use apps that send an SMS or notification that looks exactly like a real credit alert, with your name, the amount and even a balance.</p>
+        <p class="do">Ignore the alert. Open your OPay app and check Transaction History and your balance.</p>
+      </article>
+      <article class="trick">
+        <h3>Edited screenshots and receipt generators</h3>
+        <p>A "transfer successful" receipt only shows what the sender's screen says. It can be edited in seconds or made on a fake receipt website.</p>
+        <p class="do">A receipt is never payment. Only your own balance is.</p>
+      </article>
+      <article class="trick">
+        <h3>"It's pending, it will reflect"</h3>
+        <p>The buyer says the network is slow and the money will land soon, then leaves with the goods.</p>
+        <p class="do">No credit, no goods. Let them wait, or come back when it lands.</p>
+      </article>
+      <article class="trick">
+        <h3>Overpayment and "please refund me"</h3>
+        <p>A fake alert shows more than the price. The buyer asks you to send back the difference, which is your real money.</p>
+        <p class="do">Refund nothing until the full amount is in your balance, then refund only to the same account it came from.</p>
+      </article>
+      <article class="trick">
+        <h3>Links to "confirm your payment"</h3>
+        <p>A message says to click a link or log in to receive the money. The page steals your login and PIN.</p>
+        <p class="do">Never log in through a link. OPay will never need your PIN to credit you.</p>
+      </article>
+      <article class="trick">
+        <h3>Busy-shop distraction</h3>
+        <p>They pay when the shop is full, flash a phone at you, and rush out while you serve others.</p>
+        <p class="do">Make "check the app first" a shop rule for every staff member, no matter how busy.</p>
+      </article>
+      <article class="trick">
+        <h3>Real money from a stolen account</h3>
+        <p>The money is real but came from a hacked account, and can be frozen or reversed later when the owner reports it.</p>
+        <p class="do">For big sales, check that the sender name matches the buyer, and keep their phone number and ID on record.</p>
+      </article>
+
+      <article class="trick">
+        <h3>What to say when a buyer pushes</h3>
+        <div class="say">"No problem. As soon as it shows in my app, the goods are yours."</div>
+        <div class="say">"Our shop rule: we release only after the money lands. Same rule for everybody."</div>
+        <div class="say">"If it's pending, you can sit down. I'll refresh my app for you."</div>
+        <p class="small">An honest buyer waits. A scammer argues, rushes or leaves.</p>
+      </article>
+    </div>
+
+    <div class="poster">
+      <h3>Shop rule: no goods before real money</h3>
+      <ol>
+        <li>Write the price and your balance before the sale.</li>
+        <li>Never trust an SMS, screenshot or the buyer's phone.</li>
+        <li>Open your own OPay app. Find the credit in Transaction History.</li>
+        <li>Status must say Successful. Balance must go up by the full price.</li>
+        <li>Pending means wait. Overpayment means refund nothing yet.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const NGN = new Intl.NumberFormat('en-NG',{style:'currency',currency:'NGN',maximumFractionDigits:2});
+  const fmt = n => NGN.format(n || 0);
+  const num = v => { if (v == null) return null; const c = String(v).replace(/[^\d.]/g,''); if (!c) return null; const n = parseFloat(c); return isFinite(n) ? n : null; };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const toast = msg => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2600); };
+
+  /* ---------- theme ---------- */
+  const setTheme = t => { document.documentElement.setAttribute('data-theme', t); $('#themeBtn').textContent = t === 'dark' ? 'Light mode' : 'Dark mode'; try{ localStorage.setItem('confam-theme', t);}catch(e){} };
+  let saved = null; try{ saved = localStorage.getItem('confam-theme'); }catch(e){}
+  setTheme(saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+  $('#themeBtn').onclick = () => setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+
+  /* ---------- tabs ---------- */
+  $$('nav.tabs button').forEach(b => b.onclick = () => {
+    $$('nav.tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
+    $$('.panel').forEach(p => p.hidden = p.id !== 'panel-' + b.dataset.tab);
+    if (b.dataset.tab === 'log') renderLog();
+  });
+
+  /* ---------- storage (this device) ---------- */
+  const KEY = 'confam-log-v1';
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem(KEY) || '[]'); if(!Array.isArray(log)) log = []; } catch(e){ log = []; }
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(log.slice(0, 1000))); } catch(e){ toast('Could not save on this device. Export your log.'); } };
+
+  /* ---------- alert text analysis ---------- */
+  const SOURCES = {
+    app_self:   {pts:0,  sev:'good', title:'You saw it in your own app', why:'That is the right place to look. Finish step 3 to be sure.'},
+    sms:        {pts:20, sev:'mid',  title:'Came by SMS', why:'Fake alert apps send SMS messages with a spoofed sender name. An SMS alone is not proof.'},
+    screenshot: {pts:45, sev:'high', title:'Came as a screenshot or receipt from the buyer', why:'Screenshots are easy to edit and fake receipt generators exist. This shows nothing about your account.'},
+    buyer_phone:{pts:50, sev:'high', title:'Shown on the buyer\'s phone', why:'Their screen can show anything. Only your account matters.'},
+    email:      {pts:30, sev:'mid',  title:'Came by email', why:'Emails can be spoofed to look like they come from OPay.'}
+  };
+  const AMT = /(?<![A-Za-z])(?:₦|NGN|N)\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+
+  function parseAmounts(text){
+    const out = []; let m; AMT.lastIndex = 0;
+    while ((m = AMT.exec(text))) {
+      const before = text.slice(Math.max(0, m.index - 22), m.index).toLowerCase();
+      out.push({ value: parseFloat(m[1].replace(/,/g,'')), isBal: /bal|avail/.test(before) });
+    }
+    const bal = out.find(a => a.isBal);
+    const credit = out.find(a => !a.isBal);
+    return { credit: credit ? credit.value : null, balance: bal ? bal.value : null };
+  }
+
+  function analyze(){
+    const src = ($('input[name=src]:checked') || {}).value;
+    const text = $('#alertText').value.trim();
+    const expected = num($('#expected').value);
+    const balBefore = num($('#balBefore').value);
+    const flags = []; let score = 0;
+    const add = (sev, pts, title, why) => { flags.push({sev, title, why}); score += pts; };
+
+    if (!src && !text) return null;
+    if (src) { const s = SOURCES[src]; add(s.sev, s.pts, s.title, s.why); }
+
+    if (text) {
+      const t = text.toLowerCase();
+      if (/(https?:\/\/|www\.|bit\.ly|tinyurl|t\.co\/|\.(com|ng|net|xyz|link)\/\S)/.test(t))
+        add('high', 35, 'Contains a link', 'Real credit alerts never ask you to click anything. Links like this lead to fake pages that steal your login and PIN.');
+      if (/(pending|processing|will reflect|in progress|awaiting|queued|network (delay|issue|problem)|delayed)/.test(t))
+        add('high', 35, 'Says the money is pending or processing', 'Pending money is not money. Do not release goods until it shows as Successful in your own app.');
+      if (/(reverse|reversal|wrong (transfer|account)|by mistake|mistakenly|refund|send (it |the money )?back|return the (excess|balance|extra))/.test(t))
+        add('high', 35, 'Talks about a refund or reversal', 'Asking you to send money back is the classic overpayment scam.');
+      if (/(urgent|urgently|hurry|quickly|asap|right now|immediately)/.test(t))
+        add('mid', 15, 'Pressure words', 'Real alerts are plain. Urgent wording is meant to rush you past checking.');
+      if (/(sucess|succesful|sucessful|recieved|recieve|credeted|transfered|acount|ammount|tranfer|comfirm|debitted)/.test(t))
+        add('high', 25, 'Spelling mistakes', 'Official alerts are machine-generated and spelled correctly. Typos point to a fake.');
+      if (/(call|whatsapp|contact|reach)[^.\n]{0,24}(\+?234|0)[789][01]\d{8}/.test(t))
+        add('mid', 15, 'Asks you to call or message a number', 'Official alerts do not ask you to contact a personal number.');
+
+      const { credit, balance } = parseAmounts(text);
+      if (credit == null) {
+        add('mid', 10, 'No amount found in the text', 'Check that you pasted the full alert. Amounts look like ₦185,000.00 or NGN185,000.');
+      } else if (expected != null) {
+        if (credit + 0.5 < expected)
+          add('high', 40, `Alert shows ${fmt(credit)}, less than the price of ${fmt(expected)}`, 'Even if it is real, it is not the full payment.');
+        else if (credit > expected + 0.5)
+          add('high', 35, `Alert shows ${fmt(credit)}, more than the price of ${fmt(expected)}`, 'Overpayment followed by "please refund the balance" is a common trick. Refund nothing until the full amount is in your balance.');
+        else
+          add('good', 0, `Amount matches the price (${fmt(credit)})`, 'Good, but fake alerts can show the right amount too.');
+      }
+      if (balance != null && balBefore != null && credit != null) {
+        const should = balBefore + credit;
+        if (Math.abs(balance - should) > 1)
+          add('high', 35, 'Balance in the alert does not add up', `${fmt(balBefore)} before the sale plus ${fmt(credit)} should be ${fmt(should)}. The alert shows ${fmt(balance)}. Scammers guess your balance.`);
+        else
+          add('good', 0, 'Balance in the alert adds up', 'A good sign, but still confirm in your app.');
+      } else if (balance != null && balBefore == null) {
+        add('mid', 0, 'The alert shows a balance', 'Enter your balance before the sale in step 1 so Confam can check whether it adds up.');
+      }
+    }
+    score = Math.min(100, score);
+    const level = score >= 60 ? 'high' : score >= 25 ? 'mid' : 'low';
+    return { score, level, flags };
+  }
+
+  function renderScan(){
+    const r = analyze();
+    const out = $('#scanOut');
+    if (!r) { out.innerHTML = '<p class="reminder">Pick how you got the alert, or paste the alert text, then scan.</p>'; return; }
+    const label = { low:'Low risk', mid:'Suspicious', high:'Likely fake' }[r.level];
+    const order = { high:0, mid:1, good:2 };
+    r.flags.sort((a,b) => order[a.sev] - order[b.sev]);
+    out.innerHTML = `<div class="meter ${r.level}">
+        <div class="head"><b>${label}</b><span class="money">${r.score}/100 risk</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+        <ul class="flags">${r.flags.map(f => `<li class="${f.sev}"><b>${esc(f.title)}</b><span>${esc(f.why)}</span></li>`).join('')}</ul>
+      </div>
+      <p class="reminder">A low score is not proof of payment. Only step 3 is.</p>`;
+    requestAnimationFrame(() => { const i = out.querySelector('.bar i'); if (i) i.style.width = Math.max(4, r.score) + '%'; });
+    lastScan = r;
+  }
+  let lastScan = null;
+  $('#scanBtn').onclick = renderScan;
+
+  /* ---------- verification gate ---------- */
+  function gate(){
+    const c = {}; $$('#checks input').forEach(i => c[i.dataset.c] = i.checked);
+    const allChecked = c.opened && c.history && c.status && c.name;
+    const expected = num($('#expected').value);
+    const before = num($('#balBefore').value);
+    const now = num($('#balNow').value);
+    let balOk = null, diff = null;
+    if (before != null && now != null && expected != null) { diff = now - before; balOk = diff + 0.5 >= expected; }
+
+    let cls, word, msg, sub = '';
+    if (expected == null) {
+      cls = 'wait'; word = 'Not confirmed'; msg = 'Enter the price in step 1.';
+    } else if (balOk === false) {
+      cls = 'bad'; word = 'Not in account';
+      msg = diff <= 0 ? `Your balance did not go up. Hold the goods.` : `Your balance went up by ${fmt(diff)}, not ${fmt(expected)}. Hold the goods.`;
+      sub = 'If you also made a payment or withdrawal just now, check Transaction History line by line.';
+    } else if (allChecked && (balOk === true || balOk === null)) {
+      cls = 'ok'; word = 'Confirmed';
+      msg = `${fmt(expected)} is in your account. Release the goods.`;
+      sub = balOk === null ? 'Tip: next time note your balance before the sale for a double check.' : `Balance went up by ${fmt(diff)}.`;
+    } else {
+      cls = 'wait'; word = 'Not confirmed';
+      const left = ['opened','history','status','name'].filter(k => !c[k]).length;
+      msg = `Tick the ${left} remaining check${left === 1 ? '' : 's'} in your OPay app before goods leave.`;
+      if (balOk === true) sub = `Balance went up by ${fmt(diff)}, which matches.`;
+    }
+    const v = $('#verdict');
+    const prev = v.dataset.state;
+    v.innerHTML = `<div class="stamp ${cls}${prev !== cls ? ' pop' : ''}">${word}</div><div><p><strong>${esc(msg)}</strong></p>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div>`;
+    v.dataset.state = cls;
+    $('#releaseBtn').disabled = cls !== 'ok';
+    return { cls, balOk, diff };
+  }
+  $$('#checks input').forEach(i => i.addEventListener('change', gate));
+  ['#balNow','#balBefore','#expected'].forEach(s => $(s).addEventListener('input', gate));
+
+  /* ---------- logging ---------- */
+  function record(status){
+    const expected = num($('#expected').value);
+    if (expected == null) { toast('Enter the price first.'); $('#expected').focus(); return; }
+    const src = ($('input[name=src]:checked') || {}).value || '';
+    const r = lastScan || analyze();
+    log.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      ts: new Date().toISOString(),
+      item: $('#item').value.trim(),
+      amount: expected,
+      customer: $('#customer').value.trim(),
+      source: src,
+      risk: r ? r.score : null,
+      status,
+      note: $('#alertText').value.trim().slice(0, 400)
+    });
+    persist();
+    toast(status === 'released' ? 'Sale logged. Goods released.' : status === 'fake' ? 'Fake alert logged. Goods kept.' : 'Saved as waiting.');
+    resetForm();
+  }
+  $('#releaseBtn').onclick = () => { if (gate().cls === 'ok') record('released'); };
+  $('#fakeBtn').onclick = () => record('fake');
+  $('#holdBtn').onclick = () => record('held');
+
+  function resetForm(){
+    ['#item','#expected','#customer','#balBefore','#balNow','#alertText'].forEach(s => $(s).value = '');
+    $$('input[name=src]').forEach(i => i.checked = false);
+    $$('#checks input').forEach(i => i.checked = false);
+    $('#scanOut').innerHTML = ''; $('#aiOut').innerHTML = ''; $('#shotPreview').innerHTML = '';
+    if ($('#shotFile')) $('#shotFile').value = '';
+    shotBlob = null; lastScan = null; $('#aiBtn').hidden = true;
+    $('#verdict').dataset.state = ''; gate();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  const SRC_LABEL = { app_self:'Own app', sms:'SMS', screenshot:'Screenshot', buyer_phone:'Buyer\'s phone', email:'Email', '':'Not stated' };
+  const ST_LABEL = { released:'Released', fake:'Fake alert', held:'Waiting' };
+
+  function renderLog(){
+    const rel = log.filter(e => e.status === 'released'), fake = log.filter(e => e.status === 'fake'), held = log.filter(e => e.status === 'held');
+    const sum = a => a.reduce((s,e) => s + (e.amount || 0), 0);
+    $('#stats').innerHTML = `
+      <div class="stat ok"><b class="money">${fmt(sum(rel))}</b><span>Confirmed and released (${rel.length})</span></div>
+      <div class="stat bad"><b class="money">${fmt(sum(fake))}</b><span>Goods saved from ${fake.length} fake alert${fake.length === 1 ? '' : 's'}</span></div>
+      <div class="stat wait"><b class="money">${held.length}</b><span>Still waiting for money</span></div>`;
+    const list = $('#logList');
+    if (!log.length) { list.innerHTML = '<li class="empty" style="display:block">No sales yet. Check a payment and log it here.</li>'; return; }
+    list.innerHTML = log.map(e => `
+      <li>
+        <span class="what">${esc(e.item || 'Sale')} <span class="money">${fmt(e.amount)}</span></span>
+        <select aria-label="Status" data-id="${e.id}">
+          ${Object.keys(ST_LABEL).map(k => `<option value="${k}"${k === e.status ? ' selected' : ''}>${ST_LABEL[k]}</option>`).join('')}
+        </select>
+        <span class="chip ${e.status}">${ST_LABEL[e.status]}</span>
+        <span class="meta">${new Date(e.ts).toLocaleString('en-NG',{dateStyle:'medium',timeStyle:'short'})}${e.customer ? ' · ' + esc(e.customer) : ''} · Alert via ${SRC_LABEL[e.source] || 'Not stated'}${e.risk != null ? ' · Risk ' + e.risk + '/100' : ''}</span>
+      </li>`).join('');
+    list.querySelectorAll('select').forEach(s => s.onchange = () => {
+      const e = log.find(x => x.id === s.dataset.id); if (!e) return;
+      e.status = s.value; persist(); renderLog(); toast('Status updated.');
+    });
+  }
+
+  $('#clearBtn').onclick = () => {
+    if (!log.length) return;
+    if (confirm('Delete every entry in the log on this device? Export first if you need a copy.')) { log = []; persist(); renderLog(); toast('Log cleared.'); }
+  };
+
+  /* ---------- export ---------- */
+  let downloads = null;
+  $('#exportBtn').onclick = async () => {
+    if (!log.length) { toast('Nothing to export yet.'); return; }
+    const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+    const rows = [['Date','Item','Amount (NGN)','Buyer','Alert source','Risk score','Status','Alert text']]
+      .concat(log.map(e => [e.ts, e.item, e.amount, e.customer, SRC_LABEL[e.source] || '', e.risk ?? '', ST_LABEL[e.status], e.note]));
+    const csv = rows.map(r => r.map(q).join(',')).join('\r\n');
+    const filename = `confam-log-${new Date().toISOString().slice(0,10)}.csv`;
+    if (downloads) {
+      try { await downloads.save({ filename, data: new Blob([csv], {type:'text/csv'}) }); toast('Export saved.'); }
+      catch(e){ if (e && e.code !== 'declined') toast('Export did not complete.'); }
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  /* ---------- screenshot inspection (when Claude is available) ---------- */
+  let sample = null, shotBlob = null;
+  $('#shotFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    shotBlob = f || null; $('#aiOut').innerHTML = '';
+    $('#shotPreview').innerHTML = f ? `<img alt="Uploaded alert screenshot" src="${URL.createObjectURL(f)}">` : '';
+    $('#aiBtn').hidden = !f;
+  });
+
+  const aiErr = code => ({
+    not_granted: 'Screenshot inspection was not allowed. The rest of Confam still works.',
+    rate_limited: 'Too many requests. Wait a minute and try again.',
+    image_rejected: 'That image could not be read. Try a PNG or JPG screenshot.',
+    images_unavailable: 'Screenshot inspection is not available here.'
+  }[code] || 'Screenshot inspection did not complete. Rely on step 3.');
+
+  $('#aiBtn').onclick = async () => {
+    if (!sample || !shotBlob) return;
+    const btn = $('#aiBtn'); btn.disabled = true;
+    const out = $('#aiOut'); out.innerHTML = '<div class="meter"><p style="margin:0">Inspecting the screenshot…</p></div>';
+    const expected = num($('#expected').value);
+    const prompt = `You are helping a Nigerian shop owner spot fake OPay transfer alerts and fake payment receipts.
+The attached image is a screenshot the seller received as "proof" of payment.${expected != null ? ` The price of the goods is NGN ${expected}.` : ''}${$('#customer').value.trim() ? ` The buyer says their name is "${$('#customer').value.trim()}".` : ''}
+Look for signs of editing or generation: mismatched fonts, sizes or weights; misaligned or blurry numbers; pixel artifacts around the amount, name or date; wrong or odd status wording (e.g. Pending, Processing); spelling errors; unusual currency formatting; a time or date that looks inconsistent; missing transaction reference or session ID; layout that differs from a normal OPay receipt; signs it is a web page or generator rather than the app.
+Important: no screenshot can prove payment. Your job is only to list warning signs.
+Reply ONLY with JSON, no markdown:
+{"risk":"low"|"medium"|"high","amount":"amount shown or null","sender":"sender name or null","status":"status text or null","findings":["short plain-English finding", "..."]}
+Keep findings to at most 6, each under 25 words.`;
+    try {
+      const r = await sample.json(prompt, { images: shotBlob, modelTier: 'default' });
+      const lvl = { low:'low', medium:'mid', high:'high' }[r.risk] || 'mid';
+      const lab = { low:'Few warning signs', mid:'Some warning signs', high:'Strong signs of a fake' }[lvl];
+      const extra = [r.amount && `Amount shown: ${r.amount}`, r.sender && `Sender: ${r.sender}`, r.status && `Status: ${r.status}`].filter(Boolean);
+      out.innerHTML = `<div class="meter ${lvl}">
+          <div class="head"><b>${lab}</b><span>Screenshot check</span></div>
+          ${extra.length ? `<p class="small" style="margin:8px 0">${extra.map(esc).join(' · ')}</p>` : ''}
+          <ul class="flags" style="margin-top:10px">${(Array.isArray(r.findings) ? r.findings : []).map(f => `<li class="${lvl === 'low' ? 'good' : lvl}"><span>${esc(f)}</span></li>`).join('')}</ul>
+        </div>
+        <p class="reminder">Even a clean-looking screenshot proves nothing. Confirm in your own app.</p>`;
+    } catch(e) {
+      out.innerHTML = `<p class="reminder">${esc(aiErr(e && e.code))}</p>`;
+      if (e && (e.code === 'not_granted' || e.code === 'images_unavailable')) { $('#shotWrap').hidden = true; $('#aiBtn').hidden = true; }
+    } finally { btn.disabled = false; }
+  };
+
+  // Light up optional features only where the host provides them
+  (async () => {
+    if (!window.claude || typeof window.claude.use !== 'function') return;
+    try { downloads = await window.claude.use('downloads'); } catch(e){ downloads = null; }
+    try {
+      sample = await window.claude.use('sample');
+      if (sample) {
+        const lim = await sample.limits().catch(() => null);
+        if (lim && lim.images) {
+          $('#shotWrap').hidden = false;
+          $('#shotFile').accept = (lim.images.mediaTypes || ['image/png','image/jpeg']).join(',');
+        } else sample = null;
+      }
+    } catch(e){ sample = null; }
+  })();
+
+  gate();
+})();
+</script>
+</body>
+</html>
